@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evaluador · Mes de las 5S · Escorial</title>
+<style>
+:root{--bg:#F7FAFD;--surface:#fff;--ink:#13263A;--muted:#55687C;--line:#D9E3EC;--navy:#0A3D63;--blue:#127BCA;--blue-soft:#E6F1FA;--red:#BE1E2D;--red-soft:#FCEDEE;--ok:#2E7D4F;--gold:#C9962B;--silver:#8C9AA7;--bronze:#A8673A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+header{background:var(--surface);border-bottom:4px solid var(--blue);padding:18px 20px}
+header small{color:var(--blue);font-weight:700}
+header h1{margin:2px 0 0;font-size:1.7rem;color:var(--navy)}
+.wrap{max-width:1250px;margin:0 auto;padding:16px 20px 40px}
+nav{display:flex;gap:6px;margin:14px 0;flex-wrap:wrap}
+nav button,.btn{font:inherit;font-weight:600;border:1.5px solid var(--navy);background:var(--surface);color:var(--navy);border-radius:4px;padding:7px 14px;cursor:pointer}
+nav button.on,.btn.pri{background:var(--navy);color:#fff}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin-bottom:14px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{border-bottom:1px solid var(--line);padding:6px 5px;text-align:center;white-space:nowrap}
+th{font-size:.78rem;color:var(--muted);background:var(--blue-soft)}
+td:first-child,th:first-child{text-align:left}
+td.l{text-align:left}
+input,select{font:inherit;border:1.5px solid var(--line);border-radius:4px;padding:5px 6px;background:#fff;color:var(--ink)}
+input[type=number]{width:68px;text-align:center}
+input.sec{width:230px}
+input.bad{border-color:var(--red);background:var(--red-soft)}
+.tot{font-weight:800;color:var(--navy);font-size:1.05rem}
+.pen{color:var(--red);font-weight:700}
+.seal{color:var(--ok);font-weight:700}
+.note{color:var(--muted);font-size:.85rem;margin:6px 0 0}
+.badge{display:inline-block;background:var(--red-soft);color:var(--red);font-weight:700;font-size:.8rem;padding:3px 9px;border-radius:4px}
+.badge.ok{background:#E6F4EC;color:var(--ok)}
+.podium{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.pod{border-radius:6px;padding:14px;color:#fff;text-align:center}
+.pod b{display:block;font-size:2rem;line-height:1}
+.pod span{display:block;font-weight:700;margin-top:4px}
+.pod small{opacity:.9}
+.p1{background:var(--gold)}.p2{background:var(--silver)}.p3{background:var(--bronze)}
+.rule{font-size:.88rem;color:var(--muted)}
+.rule b{color:var(--navy)}
+footer{text-align:center;color:var(--muted);font-size:.85rem;padding:20px}
+.x{border:0;background:none;color:var(--red);font-size:1.1rem;cursor:pointer}
+@media print{nav,.tools,.x,#carga{display:none!important}#ranking{display:block!important}}
+</style>
+</head>
+<body>
+<header><small>Mes de las 5S · Escorial · Mejora Continua</small><h1>Evaluador de la competencia</h1></header>
+<div class="wrap">
+<nav>
+  <button id="tR" class="on">Ranking</button>
+  <button id="tC">Carga de datos</button>
+  <button id="tReg">Reglas</button>
+</nav>
+
+<section id="ranking">
+  <div id="estado"></div>
+  <div class="podium" id="podium"></div>
+  <div class="card"><table id="rk"></table>
+  <p class="note">Desempate: gana el sector con más acciones de criticidad alta cerradas. La brecha negativa (el sector bajó) cuenta como 0.</p></div>
+  <div class="tools"><button class="btn" id="bPrint">Imprimir / PDF</button><button class="btn" id="bCsv">Exportar ranking CSV</button></div>
+</section>
+
+<section id="carga" hidden>
+  <div class="tools">
+    <button class="btn pri" id="bAdd">+ Agregar sector</button>
+    <button class="btn" id="bJson">Guardar respaldo (JSON)</button>
+    <label class="btn">Cargar respaldo<input type="file" id="fJson" accept=".json" hidden></label>
+    <button class="btn" id="bReset">Restaurar datos iniciales</button>
+  </div>
+  <div class="card"><table id="ct"></table>
+  <p class="note">Auditorías en % (0–100). Tablero B: contá las acciones del tablero según el Check (las cerradas que no pasan la verificación se descuentan). Calidad = Parte B del Check (0–10). Los datos se guardan en este navegador: usá el respaldo JSON para pasarlos a otra PC.</p></div>
+</section>
+
+<section id="reglas" hidden>
+  <div class="card rule">
+    <p><b>Brecha cerrada · 60 pts.</b> (Final − Inicial) ÷ (100 − Inicial) × 60. Si el sector bajó, 0. Se usa la auditoría final; mientras no esté cargada, se usa la cruzada y el ranking se marca como parcial.</p>
+    <p><b>Tablero B · 25 pts.</b> Parte A (15): acciones cerradas ponderadas ÷ totales ponderadas × 15, con las de criticidad alta ×2. Parte B (10): calidad del tablero según el Check.</p>
+    <p><b>Nivel final · 15 pts.</b> Auditoría final ÷ 100 × 15.</p>
+    <p><b>Penalización.</b> −10 pts por hallazgo de innecesarios escondidos fuera del área.</p>
+    <p><b>Sello 5S Sostenible.</b> Auditoría sorpresa ≥ 90% del puntaje de la auditoría final.</p>
+    <p><b>Desempate.</b> Más acciones de criticidad alta cerradas.</p>
+  </div>
+</section>
+</div>
+<footer>Desarrollado por Mgter. Diego Ortiz — Líder de Mejora Continua | Consultor ISO</footer>
+
+<script>
+const KEY="eval5s_v1";
+const DEF=[
+["Reparaciones Línea 2","25",70,80],["Reparaciones Línea 3","25",49,64],["Reparaciones Línea Prearmado","25",54,66],
+["Reproceso y stock de loza","25",45,50],["Rampas y carros Fagor","25",37,51],["Pintura - Horno Pirólisis","Suipacha",59,38],
+["Calefones - Todo","Suipacha",74,74],["Armado Gas - Sector 2","Suipacha",71,76],["Prensa - Laser","Suipacha",59,51],
+["Armado Gas - Embalaje","Suipacha",68,70],["Taller","Suipacha",44,70]];
+const blank=(s,p,i,c)=>({sector:s,planta:p,ini:i,cruz:c,fin:"",aT:"",aC:"",mT:"",mC:"",cal:"",pen:"",sorp:""});
+const defaults=()=>DEF.map(d=>blank(...d));
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!Array.isArray(S))S=defaults();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const n=v=>(v===""||v==null||isNaN(+v))?null:+v;
+const f1=x=>x.toFixed(1).replace(".",",");
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function calc(r){
+  const ini=n(r.ini),cruz=n(r.cruz),fin=n(r.fin);
+  const last=fin!=null?fin:cruz;
+  let brecha=0;
+  if(ini!=null&&last!=null){brecha=ini>=100?1:Math.max(0,Math.min(1,(last-ini)/(100-ini)))*60/60;}
+  const brechaPts=brecha*60;
+  const aT=n(r.aT)||0,aC=Math.min(n(r.aC)||0,aT),mT=n(r.mT)||0,mC=Math.min(n(r.mC)||0,mT);
+  const tw=aT*2+mT,cw=aC*2+mC;
+  const A=tw?cw/tw*15:0;
+  const B=Math.max(0,Math.min(10,n(r.cal)||0));
+  const tb=A+B;
+  const nivel=last!=null?Math.max(0,Math.min(100,last))/100*15:0;
+  const pen=(n(r.pen)||0)*10;
+  const sorp=n(r.sorp);
+  const sello=sorp!=null&&last!=null&&sorp>=0.9*last;
+  return {brechaPts,tb,nivel,pen,total:brechaPts+tb+nivel-pen,aC,sello,sorp,parcial:fin==null,falta:(ini==null||last==null),sinTablero:(tw===0&&n(r.cal)==null)};
+}
+
+function renderRank(){
+  const rows=S.map(r=>({r,c:calc(r)}));
+  rows.sort((a,b)=>(Math.round(b.c.total*100)-Math.round(a.c.total*100))||(b.c.aC-a.c.aC));
+  const parcial=rows.some(x=>x.c.parcial),sinTb=rows.filter(x=>x.c.sinTablero).length;
+  $("estado").innerHTML=(parcial?'<span class="badge">Ranking parcial: hay sectores sin auditoría final (se usa la cruzada)</span> ':'<span class="badge ok">Ranking con auditoría final</span> ')+(sinTb?'<span class="badge">'+sinTb+' sector(es) sin Tablero B cargado</span>':'');
+  const med=["p1","p2","p3"];
+  $("podium").innerHTML=rows.slice(0,3).map((x,i)=>'<div class="pod '+med[i]+'"><b>'+(i+1)+'º</b><span>'+esc(x.r.sector)+'</span><small>Planta '+esc(x.r.planta)+' · '+f1(x.c.total)+' pts</small></div>').join("");
+  $("rk").innerHTML='<tr><th>#</th><th>Sector</th><th>Planta</th><th>Brecha<br>/60</th><th>Tablero B<br>/25</th><th>Nivel<br>/15</th><th>Penal.</th><th>Total<br>/100</th><th>Acc. altas<br>cerradas</th><th>Sello</th></tr>'+
+  rows.map((x,i)=>'<tr><td>'+(i+1)+'</td><td class="l">'+esc(x.r.sector)+(x.c.falta?' <span class="badge">falta dato</span>':'')+'</td><td>'+esc(x.r.planta)+'</td><td>'+f1(x.c.brechaPts)+'</td><td>'+f1(x.c.tb)+'</td><td>'+f1(x.c.nivel)+'</td><td class="'+(x.c.pen?'pen':'')+'">'+(x.c.pen?'−'+x.c.pen:'–')+'</td><td class="tot">'+f1(x.c.total)+'</td><td>'+x.c.aC+'</td><td class="seal">'+(x.c.sello?'✔ Sostenible':(x.c.sorp!=null?'No':'–'))+'</td></tr>').join("");
+  window._rows=rows;
+}
+
+const COLS=[["ini","Aud.<br>inicial"],["cruz","Aud.<br>cruzada"],["fin","Aud.<br>final"],["aT","Altas<br>totales"],["aC","Altas<br>cerradas"],["mT","Med/baj<br>totales"],["mC","Med/baj<br>cerradas"],["cal","Calidad<br>(0–10)"],["pen","Penal.<br>(hallazgos)"],["sorp","Aud.<br>sorpresa"]];
+function buildCarga(){
+  $("ct").innerHTML='<tr><th>Sector</th><th>Planta</th>'+COLS.map(c=>'<th>'+c[1]+'</th>').join("")+'<th>TB pts</th><th></th></tr>'+
+  S.map((r,i)=>'<tr data-i="'+i+'"><td><input class="sec" data-k="sector" value="'+esc(r.sector)+'"></td><td><select data-k="planta"><option'+(r.planta==="25"?" selected":"")+'>25</option><option'+(r.planta==="Suipacha"?" selected":"")+'>Suipacha</option></select></td>'+
+  COLS.map(c=>'<td><input type="number" min="0" step="any" data-k="'+c[0]+'" value="'+esc(r[c[0]])+'"></td>').join("")+'<td class="tot" data-tb>'+f1(calc(r).tb)+'</td><td><button class="x" data-del title="Quitar">✕</button></td></tr>').join("");
+  S.forEach((_,i)=>validate(i));
+}
+function validate(i){
+  const tr=document.querySelector('#ct tr[data-i="'+i+'"]');if(!tr)return;const r=S[i];
+  const bad=(k,cond)=>tr.querySelector('[data-k="'+k+'"]').classList.toggle("bad",!!cond);
+  ["ini","cruz","fin","sorp"].forEach(k=>bad(k,n(r[k])!=null&&(n(r[k])<0||n(r[k])>100)));
+  bad("aC",(n(r.aC)||0)>(n(r.aT)||0));bad("mC",(n(r.mC)||0)>(n(r.mT)||0));
+  bad("cal",n(r.cal)!=null&&(n(r.cal)<0||n(r.cal)>10));
+  tr.querySelector("[data-tb]").textContent=f1(calc(r).tb);
+}
+$("ct").addEventListener("input",e=>{
+  const tr=e.target.closest("tr[data-i]");if(!tr||!e.target.dataset.k)return;
+  const i=+tr.dataset.i;S[i][e.target.dataset.k]=e.target.value;save();validate(i);renderRank();
+});
+$("ct").addEventListener("click",e=>{
+  if(!e.target.hasAttribute("data-del"))return;
+  const i=+e.target.closest("tr").dataset.i;
+  if(confirm('¿Quitar "'+S[i].sector+'"?')){S.splice(i,1);save();buildCarga();renderRank();}
+});
+$("bAdd").onclick=()=>{S.push(blank("Nuevo sector","25","",""));save();buildCarga();renderRank();};
+$("bReset").onclick=()=>{if(confirm("Se pierden los datos cargados. ¿Restaurar los iniciales?")){S=defaults();save();buildCarga();renderRank();}};
+function dl(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+$("bJson").onclick=()=>dl("evaluador-5s-respaldo.json",JSON.stringify(S,null,1),"application/json");
+$("fJson").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!Array.isArray(d))throw 0;S=d;save();buildCarga();renderRank();}catch(x){alert("Archivo no válido");}};rd.readAsText(f);e.target.value="";};
+$("bCsv").onclick=()=>{const h=["Puesto","Sector","Planta","Brecha","TableroB","Nivel","Penalizacion","Total","AccionesAltasCerradas","Sello"];
+  const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
+  const l=[h.join(";")].concat(window._rows.map((x,i)=>[i+1,q(x.r.sector),x.r.planta,f1(x.c.brechaPts),f1(x.c.tb),f1(x.c.nivel),x.c.pen,f1(x.c.total),x.c.aC,x.c.sello?"Si":"No"].join(";")));
+  dl("ranking-5s.csv","﻿"+l.join("\n"),"text/csv");};
+$("bPrint").onclick=()=>window.print();
+const tabs={tR:"ranking",tC:"carga",tReg:"reglas"};
+Object.keys(tabs).forEach(t=>$(t).onclick=()=>{Object.keys(tabs).forEach(k=>{$(k).classList.toggle("on",k===t);$(tabs[k]).hidden=k!==t;});});
+buildCarga();renderRank();
+</script>
+</body>
+</html>
