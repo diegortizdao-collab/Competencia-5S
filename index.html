@@ -41,6 +41,12 @@ input.bad{border-color:var(--red);background:var(--red-soft)}
 .rule{font-size:.88rem;color:var(--muted)}
 .rule b{color:var(--navy)}
 footer{text-align:center;color:var(--muted);font-size:.85rem;padding:20px}
+.q{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.q h3{margin:0;font-size:1rem;color:var(--navy)}
+.q p{margin:2px 0 0;font-size:.85rem;color:var(--muted)}
+.opts{display:flex;gap:6px;flex-wrap:wrap}
+.opts label{display:flex;align-items:center;gap:5px;border:1.5px solid var(--line);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:.88rem}
+.opts label:has(input:checked){background:var(--navy);border-color:var(--navy);color:#fff}
 .x{border:0;background:none;color:var(--red);font-size:1.1rem;cursor:pointer}
 @media print{nav,.tools,.x,#carga{display:none!important}#ranking{display:block!important}}
 </style>
@@ -51,6 +57,7 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:20px}
 <nav>
   <button id="tR" class="on">Ranking</button>
   <button id="tC">Carga de datos</button>
+  <button id="tQ">Calidad Tablero B</button>
   <button id="tReg">Reglas</button>
 </nav>
 
@@ -71,6 +78,16 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:20px}
   </div>
   <div class="card"><table id="ct"></table>
   <p class="note">Auditorías en % (0–100). Tablero B: contá las acciones del tablero según el Check (las cerradas que no pasan la verificación se descuentan). Calidad = Parte B del Check (0–10). Los datos se guardan en este navegador: usá el respaldo JSON para pasarlos a otra PC.</p></div>
+</section>
+
+<section id="calidad" hidden>
+  <div class="card">
+    <label><b>Sector evaluado</b> <select id="qSec"></select></label>
+    <div id="qForm"></div>
+    <div class="tools"><b style="font-size:1.1rem">Calidad del tablero: <span id="qTot">0</span> / 10</b>
+    <button class="btn pri" id="bQ">Cargar al evaluador</button><span id="qMsg" class="seal"></span></div>
+    <p class="note">Al cargar, el puntaje se guarda en "Calidad (0–10)" del sector. Si volvés a cargar el mismo sector, se reemplaza.</p>
+  </div>
 </section>
 
 <section id="reglas" hidden>
@@ -149,6 +166,7 @@ function buildCarga(){
   S.map((r,i)=>'<tr data-i="'+i+'"><td><input class="sec" data-k="sector" value="'+esc(r.sector)+'"></td><td><select data-k="planta"><option'+(r.planta==="25"?" selected":"")+'>25</option><option'+(r.planta==="Suipacha"?" selected":"")+'>Suipacha</option></select></td>'+
   COLS.map(c=>'<td><input type="number" min="0" step="any" data-k="'+c[0]+'" value="'+esc(r[c[0]])+'"></td>').join("")+'<td class="tot" data-tb>'+f1(calc(r).tb)+'</td><td><button class="x" data-del title="Quitar">✕</button></td></tr>').join("");
   S.forEach((_,i)=>validate(i));
+  fillQSec();
 }
 function validate(i){
   const tr=document.querySelector('#ct tr[data-i="'+i+'"]');if(!tr)return;const r=S[i];
@@ -177,8 +195,39 @@ $("bCsv").onclick=()=>{const h=["Puesto","Sector","Planta","Brecha","TableroB","
   const l=[h.join(";")].concat(window._rows.map((x,i)=>[i+1,q(x.r.sector),x.r.planta,f1(x.c.brechaPts),f1(x.c.tb),f1(x.c.nivel),x.c.pen,f1(x.c.total),x.c.aC,x.c.sello?"Si":"No"].join(";")));
   dl("ranking-5s.csv","﻿"+l.join("\n"),"text/csv");};
 $("bPrint").onclick=()=>window.print();
-const tabs={tR:"ranking",tC:"carga",tReg:"reglas"};
+const tabs={tR:"ranking",tC:"carga",tQ:"calidad",tReg:"reglas"};
 Object.keys(tabs).forEach(t=>$(t).onclick=()=>{Object.keys(tabs).forEach(k=>{$(k).classList.toggle("on",k===t);$(tabs[k]).hidden=k!==t;});});
+const OPT=["No cumple","Parcial","Cumple"];
+const Q=[["Actualizado","La última actualización del tablero tiene menos de 7 días.",null],
+["Responsable y fecha","Cada acción tiene una persona con nombre y una fecha de compromiso.",null],
+["Cobertura","Hay acciones para los principales hallazgos de la auditoría inicial.",null],
+["Evidencia de cierre","Verificá en el sector 3 acciones cerradas al azar (priorizando las altas).",["Fallan 2 o más","Falla una","Las 3 resueltas"]],
+["Vencidas tratadas","Las acciones vencidas tienen una fecha nueva o una decisión definida.",null]];
+function qAnswers(){return Q.map((_,k)=>{const c=document.querySelector('input[name=q'+k+']:checked');return c?+c.value:null;});}
+function qUpdate(){const a=qAnswers();$("qTot").textContent=a.reduce((t,v)=>t+(v||0),0);$("qMsg").textContent="";}
+function renderQ(){
+  const i=+$("qSec").value,r=S[i];if(!r){$("qForm").innerHTML="";return;}
+  const a=r.q||[];
+  $("qForm").innerHTML=Q.map((q,k)=>'<div class="q"><div><h3>'+(k+1)+'. '+q[0]+'</h3><p>'+q[1]+'</p></div><div class="opts">'+[0,1,2].map(v=>'<label><input type="radio" name="q'+k+'" value="'+v+'"'+(a[k]===v?' checked':'')+'>'+v+' · '+(q[2]?q[2][v]:OPT[v])+'</label>').join("")+'</div></div>').join("");
+  qUpdate();
+}
+function fillQSec(){
+  const sel=$("qSec"),cur=sel.value;
+  sel.innerHTML=S.map((r,i)=>'<option value="'+i+'">'+esc(r.sector)+' ('+esc(r.planta)+')</option>').join("");
+  if(cur!==""&&+cur<S.length)sel.value=cur;
+  renderQ();
+}
+$("qSec").onchange=renderQ;
+$("qForm").addEventListener("change",qUpdate);
+$("bQ").onclick=()=>{
+  const i=+$("qSec").value,a=qAnswers(),m=$("qMsg");
+  const f=a.findIndex(v=>v===null);
+  if(f>=0){m.className="pen";m.textContent="Falta responder la pregunta "+(f+1)+".";return;}
+  const tot=a.reduce((t,v)=>t+v,0);
+  S[i].q=a;S[i].cal=tot;save();
+  const sel=$("qSec").value;buildCarga();$("qSec").value=sel;renderRank();
+  m.className="seal";m.textContent="✔ Cargado: "+S[i].sector+" · "+tot+"/10";
+};
 buildCarga();renderRank();
 </script>
 </body>
