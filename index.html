@@ -76,7 +76,16 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:20px}
 <section id="reglas" hidden>
   <div class="card rule">
     <p><b>Brecha cerrada · 60 pts.</b> (Final − Inicial) ÷ (100 − Inicial) × 60. Si el sector bajó, 0. Se usa la auditoría final; mientras no esté cargada, se usa la cruzada y el ranking se marca como parcial.</p>
-    <p><b>Tablero B · 25 pts.</b> Parte A (15): acciones cerradas ponderadas ÷ totales ponderadas × 15, con las de criticidad alta ×2. Parte B (10): calidad del tablero según el Check.</p>
+    <p><b>Tablero B · 25 pts.</b> Parte A (15): acciones cerradas ponderadas ÷ totales ponderadas × 15, con las de criticidad alta ×2. Parte B (10): calidad del tablero, que se evalúa con las 5 preguntas de abajo.</p>
+    <p><b>Calidad del tablero (Parte B) · 10 pts.</b> Mide si el tablero está bien llevado, no cuántas acciones cerró. Cada pregunta vale 0 (no cumple), 1 (parcial) o 2 (cumple); la suma es el valor de "Calidad (0–10)" en Carga de datos.</p>
+    <ol>
+      <li><b>Actualizado:</b> la última actualización del tablero tiene menos de 7 días.</li>
+      <li><b>Responsable y fecha:</b> cada acción tiene una persona con nombre y una fecha de compromiso.</li>
+      <li><b>Cobertura:</b> hay acciones para los principales hallazgos de la auditoría inicial.</li>
+      <li><b>Evidencia de cierre:</b> el auditor verifica en el sector 3 acciones cerradas al azar, priorizando las de criticidad alta. Las 3 resueltas: 2 · falla una: 1 · fallan dos o más: 0. Una acción cerrada que no pasa la verificación se cuenta como abierta en la Parte A.</li>
+      <li><b>Vencidas tratadas:</b> las acciones vencidas tienen una fecha nueva o una decisión definida.</li>
+    </ol>
+    <p class="note">Para las preguntas 1, 2, 3 y 5, criterio acordado entre auditores: 2 = se cumple en todas las acciones, 1 = en algunas, 0 = en ninguna.</p>
     <p><b>Nivel final · 15 pts.</b> Auditoría final ÷ 100 × 15.</p>
     <p><b>Penalización.</b> −10 pts por hallazgo de innecesarios escondidos fuera del área.</p>
     <p><b>Sello 5S Sostenible.</b> Auditoría sorpresa ≥ 90% del puntaje de la auditoría final.</p>
